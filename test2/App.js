@@ -6,108 +6,158 @@
  * @flow strict-local
  */
 
-import React from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
-  ScrollView,
+  ActivityIndicator,
   View,
   Text,
-  StatusBar,
+  FlatList,
+  TouchableOpacity,
 } from 'react-native';
-
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import moment from 'moment';
+import {Card, Button} from 'react-native-elements';
+import axios from 'axios';
+import {Icon} from 'react-native-elements';
 
 const App: () => React$Node = () => {
-  return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
+  const [loading, setLoading] = useState(true);
+  const [articles, setArticles] = useState([]);
+  const [pageNumber, setPageNumber] = useState(1);
+
+  useEffect(() => {
+    axios
+      .get(
+        `https://newsapi.org/v2/top-headlines?country=us&apiKey=abcaea57d4554c0fbc5f903521646862&page=${pageNumber}`,
+      )
+      .then(function (response) {
+        // handle success
+        const newData = response.data.articles;
+
+        setArticles(newData);
+        //
+        setLoading(false);
+      })
+      .catch(function (error) {
+        // handle error
+        console.log(error);
+      })
+      .finally(function () {
+        // always executed
+      });
+  }, []);
+
+  const loadMore = () => {
+    setPageNumber(pageNumber + 1);
+  };
+
+  useEffect(() => {
+    console.log('chay lai');
+    axios
+      .get(
+        `https://newsapi.org/v2/top-headlines?country=us&apiKey=abcaea57d4554c0fbc5f903521646862&page=${pageNumber}`,
+      )
+      .then(function (response) {
+        // handle success
+        const newData = response.data.articles;
+        console.log(newData);
+
+        setArticles([...articles, ...newData]);
+        //
+        setLoading(false);
+      })
+      .catch(function (error) {
+        // handle error
+        console.log(error);
+      })
+      .finally(function () {
+        // always executed
+      });
+  }, [pageNumber]);
+
+  const renderItem = useCallback(
+    (props) => {
+      console.log(props);
+      const {item} = props;
+      return (
+        <Card title={item.title} image={{uri: item.urlToImage}}>
+          <View style={styles.row}>
+            <Text style={styles.label}>Source</Text>
+            <Text style={styles.info}>{item.source?.name}</Text>
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
+          <Text style={{marginBottom: 10}}>{item.content}</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>Published</Text>
+            <Text style={styles.info}>
+              {moment(item.publishedAt).format('LLL')}
+            </Text>
+          </View>
+          <Button icon={<Icon />} title="Read more" backgroundColor="#03A9F4" />
+        </Card>
+      );
+    },
+    [articles],
+  );
+
+  if (loading) {
+    return (
+      <View>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  // console.log(articles);
+  // console.log(pageNumber);
+  return (
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <Text style={styles.label}>Articles Count:</Text>
+
+        <Text style={styles.info}>{articles.length}</Text>
+      </View>
+      <FlatList
+        data={articles}
+        renderItem={renderItem}
+        keyExtractor={(_, index) => index}
+        onEndReachedThreshold={0.5}
+        onEndReached={loadMore}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
+  containerFlex: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  engine: {
-    position: 'absolute',
-    right: 0,
+  container: {
+    flex: 1,
+    marginTop: 40,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
   },
-  body: {
-    backgroundColor: Colors.white,
+  header: {
+    height: 30,
+    width: '100%',
+    backgroundColor: 'pink',
   },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  row: {
+    flexDirection: 'row',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
+  label: {
+    fontSize: 16,
+    color: 'black',
+    marginRight: 10,
+    fontWeight: 'bold',
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
+  info: {
+    fontSize: 16,
+    color: 'grey',
   },
 });
 
